@@ -22,13 +22,18 @@ export const login = async (staff_name, password) => {
     const { token, role, staff_id, staff_name: name } = response.data;
     
     // ✅ Store với key 'token' giống staffs.js
-    localStorage.setItem('token', token);  // ← Same key as staffs.js
+    localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify({
       id: staff_id,
       name: name || staff_name,
       role: role,
       staff_name: staff_name
     }));
+    
+    // Lưu cả object và các field riêng lẻ để backward compatibility
+    localStorage.setItem('staff_name', name || staff_name); // ← Thêm dòng này
+    localStorage.setItem('role', role);                     // ← Thêm dòng này  
+    localStorage.setItem('staff_id', staff_id);             // ← Thêm dòng này
     
     console.log('💾 Stored successfully:', { role, name: name || staff_name });
     
@@ -93,6 +98,9 @@ export const getUserRole = () => {
 
 export const logout = () => {
   console.log('🚪 Logging out...');
-  localStorage.removeItem('token');  // ← Same key as staffs.js
+  localStorage.removeItem('token');
   localStorage.removeItem('user');
+  localStorage.removeItem('staff_name');
+  localStorage.removeItem('role');
+  localStorage.removeItem('staff_id');
 };
