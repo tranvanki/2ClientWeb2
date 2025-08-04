@@ -12,17 +12,32 @@ function getAuthHeaders() {
 };
 }
 
-export const getAllStaff = async () => {
-  try {
-    const response = await axios.get(`${backendUrl}/staffs`, {
-      headers: getAuthHeaders()
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching staff list:', error);
-    throw error;
-  }
-};
+// export const getAllStaff = async () => {
+//   try {
+//     const response = await axios.get(`${backendUrl}/staffs`, {
+//       headers: getAuthHeaders()
+//     });
+//     return response.data;
+//   } catch (error) {
+//     console.error('Error fetching staff list:', error);
+//     throw error;
+//   }
+// };
+// Trong services/staffs.js
+export async function getAllStaff() {
+  const token = localStorage.getItem('token');
+  return fetch('/staffs', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
+  .then(res => {
+    if (!res.ok) throw res;
+    return res.json();
+  });
+}
 
 export const getStaffById = async (id) => {
   try {
