@@ -95,7 +95,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { signup } from '@/services/auth';
+import { createStaff } from '@/services/staffs';
 
 const router = useRouter();
 
@@ -105,7 +105,8 @@ const formData = ref({
   password: '',
   role: '',
   phone: '',
-  department: ''
+  department: '',
+  specialization: ''
 });
 
 const submitting = ref(false);
@@ -114,7 +115,7 @@ const handleSubmit = async () => {
   submitting.value = true;
   
   try {
-    await signup(formData.value);
+    await createStaff(formData.value);
     alert('Staff member created successfully!');
     router.push('/staff-list');
   } catch (error) {
