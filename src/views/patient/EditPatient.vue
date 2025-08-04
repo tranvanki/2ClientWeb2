@@ -87,8 +87,14 @@ onMounted(async () => {
 const handleSubmit = async () => {
   submitting.value = true;
 
+  // Fix: Do not send empty string for staff_id
+  const payload = { ...formData.value };
+  if (!payload.staff_id) {
+    payload.staff_id = null;
+  }
+
   try {
-    await updatePatientById(patientId, formData.value);
+    await updatePatientById(patientId, payload);
     alert('Patient updated successfully!');
     router.push({
       name: 'PatientDetails',
@@ -122,118 +128,3 @@ const handleCancel = () => {
   });
 };
 </script>
-
-<template>
-  <div class="edit-patient-container">
-    <div class="edit-patient-card">
-      <div class="page-header">
-        <div class="breadcrumb">
-          <router-link to="/patient-list" class="breadcrumb-link">👥 Patients</router-link>
-          <span class="breadcrumb-separator">→</span>
-          <router-link :to="`/patient-details/${patientId}`" class="breadcrumb-link">
-            {{ formData.patient_name || 'Patient' }}
-          </router-link>
-          <span class="breadcrumb-separator">→</span>
-          <span class="breadcrumb-current">Edit</span>
-        </div>
-        <h1 class="page-title">Edit Patient</h1>
-      </div>
-
-      <div v-if="loading" class="loading-state">
-        <div class="loading-spinner"></div>
-        <p>Loading patient information...</p>
-      </div>
-
-      <div v-else-if="error" class="error-state">
-        <div class="error-icon">⚠️</div>
-        <p>{{ error }}</p>
-        <button @click="router.push('/patient-list')" class="btn btn-secondary">
-          Back to Patient List
-        </button>
-      </div>
-
-      <div v-else class="form-container">
-        <form @submit.prevent="handleSubmit">
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="patient_id">Patient ID</label>
-              <input 
-                type="text" 
-                id="patient_id" 
-                v-model="formData.patient_id" 
-                readonly
-                class="readonly"
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="patient_name">Full Name *</label>
-              <input 
-                type="text" 
-                id="patient_name" 
-                v-model="formData.patient_name" 
-                required
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="phone_num">Phone Number</label>
-              <input 
-                type="tel" 
-                id="phone_num" 
-                v-model="formData.phone_num"
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="staff_id">Assigned Doctor</label>
-              <select id="staff_id" v-model="formData.staff_id">
-                <option value="">Select Doctor</option>
-                <option v-for="doctor in doctors" :key="doctor.staff_id" :value="doctor.staff_id">
-                  {{ doctor.staff_name }}
-                </option>
-              </select>
-            </div>
-
-            <div class="form-group full-width">
-              <label for="medical_history">Medical History</label>
-              <textarea 
-                id="medical_history" 
-                v-model="formData.medical_history"
-                rows="4"
-                placeholder="Enter patient's medical history..."
-              ></textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="discharge_status">Discharge Status</label>
-              <select id="discharge_status" v-model="formData.discharge_status">
-                <option value="pending">Pending</option>
-                <option value="discharged">Discharged</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary" :disabled="submitting">
-              <span v-if="submitting">Updating...</span>
-              <span v-else>Update Patient</span>
-            </button>
-            <button 
-              type="button" 
-              @click="handleCancel"
-              class="btn btn-secondary"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</template>
-
-<style scoped>
-/* Same styles as before */
-</style>
