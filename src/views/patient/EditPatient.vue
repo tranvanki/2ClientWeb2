@@ -10,7 +10,6 @@ const props = defineProps({
     required: true
   }
 });
-
 const route = useRoute();
 const router = useRouter();
 const patientId = props.id || route.params.id;
@@ -48,7 +47,7 @@ onMounted(async () => {
     }
 
     try {
-      staffData = await getAllStaff();
+      staffData = await getAllStaff(); // Đã fix: luôn truyền Authorization header trong hàm getAllStaff
       doctors.value = staffData.filter(staff =>
         staff.role && staff.role.toLowerCase().includes('doctor')
       );
@@ -86,12 +85,8 @@ onMounted(async () => {
 
 const handleSubmit = async () => {
   submitting.value = true;
-
-  // Fix: Do not send empty string for staff_id
   const payload = { ...formData.value };
-  if (!payload.staff_id) {
-    payload.staff_id = null;
-  }
+  if (!payload.staff_id) payload.staff_id = null;
 
   try {
     await updatePatientById(patientId, payload);
@@ -114,7 +109,6 @@ const handleSubmit = async () => {
     } else {
       error.value = `Update failed: ${err.message}`;
     }
-
     alert(error.value);
   } finally {
     submitting.value = false;
