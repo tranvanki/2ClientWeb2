@@ -24,7 +24,6 @@ export const getAllStaff = async () => {
   }
 };
 
-
 export const getStaffById = async (id) => {
   try {
     const response = await axios.get(`${backendUrl}/staffs/${id}`, {
