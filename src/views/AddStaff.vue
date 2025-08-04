@@ -12,64 +12,80 @@
 
       <div class="form-container">
         <form @submit.prevent="handleSubmit">
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="staff_name">Full Name *</label>
-              <input 
-                type="text" 
-                id="staff_name" 
-                v-model="formData.staff_name" 
-                required
-              />
-            </div>
+        <div class="form-group">
+        <label for="staff_id">Staff ID:</label>
+        <input type="text" id="staff_id" v-model="formData.staff_id" required />
+      </div>
 
-            <div class="form-group">
-              <label for="email">Email *</label>
-              <input 
-                type="email" 
-                id="email" 
-                v-model="formData.email" 
-                required
-              />
-            </div>
+      <div class="form-group">
+        <label for="staff_name">Username:</label>
+        <input type="text" id="staff_name" v-model="formData.staff_name" required />
+      </div>
 
-            <div class="form-group">
-              <label for="password">Password *</label>
-              <input 
-                type="password" 
-                id="password" 
-                v-model="formData.password" 
-                required
-                minlength="6"
-              />
-            </div>
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" v-model="formData.email" required />
+      </div>
 
-            <div class="form-group">
-              <label for="role">Role *</label>
-              <select id="role" v-model="formData.role" required>
-                <option value="">Select Role</option>
-                <!-- ✅ CHỈ CÓ 2 ROLE THEO DATABASE -->
-                <option value="doctor">Doctor</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
+      <div class="form-group">
+        <label for="password">Password:</label>
+        <input
+          type="password"
+          id="password"
+          v-model="formData.password"
+          required
+        />
+      </div>
 
-            <div class="form-group">
-              <label for="phone">Phone Number</label>
-              <input 
-                type="tel" 
-                id="phone" 
-                v-model="formData.phone"
-              />
-            </div>
+      <div class="form-group">
+        <label for="date_of_birth">Date of Birth:</label>
+        <input
+          type="date"
+          id="date_of_birth"
+          v-model="formData.date_of_birth"
+          required
+        />
+      </div>
 
-            <div class="form-group">
-              <label for="department">Department</label>
-              <input 
-                type="text" 
-                id="department" 
-                v-model="formData.department"
-              />
+      <!-- Additional Info -->
+      <div class="form-group">
+        <label for="department">Department:</label>
+        <input
+          type="text"
+          id="department"
+          v-model="formData.department"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="specialization">Specialization:</label>
+        <input
+          type="text"
+          id="specialization"
+          v-model="formData.specialization"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="shift_time">Shift Time:</label>
+        <select id="shift_time" v-model="formData.shift_time" required>
+          <option value="">Select Shift</option>
+          <option value="Morning">Morning</option>
+          <option value="Afternoon">Afternoon</option>
+          <option value="Night">Night</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="role">Role:</label>
+        <input type="text" id="role" v-model="formData.role" required />
+      </div>
+
+      <button type="submit">Submit</button>
+    </form>
+  </div>
             </div>
           </div>
 
@@ -95,7 +111,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { createStaff } from '@/services/staffs';
+import { signup } from '@/services/auth';
 
 const router = useRouter();
 
