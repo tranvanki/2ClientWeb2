@@ -46,15 +46,15 @@ onMounted(async () => {
       throw patientErr;
     }
 
-    try {
-      staffData = await getAllStaff(); // Đã fix: luôn truyền Authorization header trong hàm getAllStaff
-      doctors.value = staffData.filter(staff =>
-        staff.role && staff.role.toLowerCase().includes('doctor')
-      );
-    } catch (staffErr) {
-      // non-critical
-    }
-
+ try {
+  staffData = await getAllStaff();
+  doctors.value = staffData.filter(staff =>
+    staff.role && staff.role.toLowerCase().includes('doctor')
+  );
+} catch (staffErr) {
+  error.value = 'Không thể lấy danh sách bác sĩ. Vui lòng kiểm tra quyền truy cập hoặc đăng nhập lại.';
+  
+}
     if (patientData) {
       formData.value = {
         patient_id: patientData.patient_id || '',
