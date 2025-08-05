@@ -5,12 +5,12 @@ const backendUrl = 'https://twoserverweb2.onrender.com';
 function getAuthHeaders() {
   const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}`,
-    'Content-Type': 'application/json' // ← Add this
+    'Content-Type': 'application/json' 
 } : {
       'Content-Type': 'application/json'
 
-};
 }
+};
 
 export const getAllStaff = async () => {
   try {
