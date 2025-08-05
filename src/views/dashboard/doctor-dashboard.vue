@@ -1,6 +1,5 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
 
 const doctorName = ref('Doctor')
 const stats = ref({
@@ -10,14 +9,11 @@ const stats = ref({
   completedRecords: 0
 })
 
-// Fetch doctor info and stats
 onMounted(async () => {
   try {
     const token = localStorage.getItem('token')
-    // Get doctor name
     doctorName.value = localStorage.getItem('staff_name') || 'doctor'
     
-    // Set default stats for now
     stats.value = {
       totalPatients: 42,
       todayAppointments: 8,
@@ -27,7 +23,6 @@ onMounted(async () => {
     
   } catch (err) {
     console.error('Failed to load dashboard data:', err)
-    // Use fallback data if API fails
     stats.value = {
       totalPatients: 42,
       todayAppointments: 8,
@@ -40,19 +35,15 @@ onMounted(async () => {
 
 <template>
   <div class="dashboard">
-    <!-- Header Section -->
     <div class="dashboard-header">
       <div class="header-content">
         <div class="breadcrumb">
           <span class="breadcrumb-item">🏠 Dashboard</span>
         </div>
-        <h1 class="dashboard-title">
-          Dashboard
-        </h1>
+        <h1 class="dashboard-title">Dashboard</h1>
         <p class="dashboard-subtitle">Welcome back, Dr. {{ doctorName }}</p>
       </div>
       
-      <!-- Stats Cards Row -->
       <div class="stats-row">
         <div class="stat-card blue">
           <div class="stat-icon">👥</div>
@@ -88,9 +79,7 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Main Content Grid -->
     <div class="dashboard-grid">
-      <!-- Quick Actions Card -->
       <div class="card quick-actions">
         <div class="card-header">
           <h3>Quick Actions</h3>
@@ -132,7 +121,6 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Recent Patients Card -->
       <div class="card recent-patients">
         <div class="card-header">
           <h3>Recent Patients</h3>
@@ -170,7 +158,6 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Today's Schedule Card -->
       <div class="card schedule">
         <div class="card-header">
           <h3>Today's Schedule</h3>
@@ -240,7 +227,6 @@ onMounted(async () => {
   margin: 0;
 }
 
-/* Stats Row */
 .stats-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -288,7 +274,6 @@ onMounted(async () => {
   color: #343a40;
 }
 
-/* Dashboard Grid */
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -328,7 +313,6 @@ onMounted(async () => {
   padding: 20px;
 }
 
-/* Quick Actions */
 .quick-actions {
   grid-column: 1 / -1;
 }
@@ -394,7 +378,6 @@ onMounted(async () => {
   opacity: 0.8;
 }
 
-/* Recent Patients */
 .patient-list {
   display: flex;
   flex-direction: column;
@@ -458,7 +441,6 @@ onMounted(async () => {
   color: #004085;
 }
 
-/* Schedule */
 .schedule-list {
   display: flex;
   flex-direction: column;
