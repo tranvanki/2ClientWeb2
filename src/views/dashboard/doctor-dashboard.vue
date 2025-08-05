@@ -1,503 +1,519 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import { ref, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { getPatientById, updatePatientById } from '@/services/patients';
+import { getAllStaff } from '@/services/staffs';
 
-const doctorName = ref('Doctor')
-const stats = ref({
-  totalPatients: 0,
-  todayAppointments: 0,
-  pendingVitals: 0,
-  completedRecords: 0
-})
-
-// Fetch doctor info and stats
-onMounted(async () => {
-  try {
-    const token = localStorage.getItem('token')
-    // Get doctor name
-    doctorName.value = localStorage.getItem('staff_name') || 'doctor'
-    
-    if (statsRes.data) {
-      stats.value = statsRes.data
-    }
-    
-  } catch (err) {
-    console.error('Failed to load dashboard data:', err)
-    // Use fallback data if API fails
-    stats.value = {
-      totalPatients: 42,
-      todayAppointments: 8,
-      pendingVitals: 5,
-      completedRecords: 127
-    }
+const props = defineProps({
+  id: {
+    type: String,
+    required: true
   }
-})
+});
+
+const route = useRoute();
+const router = useRouter();
+const patientId = props.id || route.params.id;
+
+const formData = ref({
+  patient_id: '',
+  patient_name: '',
+  date_of_birth: '',
+  gender: '',
+  phone_number: '',
+  email: '',
+  address: '',
+  emergency_contact: '',
+  staff_id: '',
+  medical_history: '',
+  status: 'Active'
+});
+
+const doctors = ref([]);
+const loading = ref(true);
+const submitting = ref(false);
+const error = ref('');
+
+const formatDateForInput = (dateString) => {
+  if (!dateString) return '';
+  return new Date(dateString).toISOString().split('T')[0];
+};
+
+onMounted(async () => {
+  console.log('🚀 EditPatient component mounted');
+  console.log('📝 Patient ID:', patientId);
+  
+  try {
+    // ✅ Kiểm tra token trước khi làm gì
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.log('❌ No token found, redirecting to login');
+      error.value = 'You need to login first';
+      router.push('/login');
+      return;
+    }
+
+    console.log('Loading patient with ID:', patientId);
+    console.log('Token exists:', !!token);
+    
+    // ✅ Load riêng từng phần để debug dễ hơn
+    let patientData = null;
+    let staffData = [];
+
+    // Load patient data
+    try {
+      patientData = await getPatientById(patientId);
+      console.log('✅ Patient loaded:', patientData);
+    } catch (patientErr) {
+      console.error('❌ Patient error:', patientErr);
+      throw patientErr;
+    }
+
+    // Load staff data (không bắt buộc)
+    try {
+      staffData = await getAllStaff();
+      console.log('✅ Staff loaded:', staffData.length, 'items');
+      doctors.value = staffData.filter(staff => 
+        staff.role && staff.role.toLowerCase().includes('doctor')
+      );
+    } catch (staffErr) {
+      console.error('⚠️ Staff error (non-critical):', staffErr);
+      // Không throw error cho staff vì không bắt buộc
+    }
+
+    // Populate form với patient data
+    if (patientData) {
+      formData.value = {
+        ...patientData,
+        date_of_birth: formatDateForInput(patientData.date_of_birth)
+      };
+    }
+
+  } catch (err) {
+    console.error('Error loading data:', err);
+    
+    // ✅ Xử lý các loại lỗi cụ thể
+    if (err.response?.status === 401) {
+      error.value = 'Your session has expired. Please login again.';
+      localStorage.removeItem('token'); // Xóa token hết hạn
+      setTimeout(() => router.push('/login'), 2000);
+    } else if (err.response?.status === 403) {
+      error.value = 'You do not have permission to edit this patient.';
+    } else if (err.response?.status === 404) {
+      error.value = 'Patient not found.';
+    } else {
+      error.value = err.response?.data?.message || 'Failed to load patient data.';
+    }
+  } finally {
+    loading.value = false;
+  }
+});
+
+const handleSubmit = async () => {
+  submitting.value = true;
+  
+  try {
+    console.log('Updating patient:', patientId, formData.value);
+    
+    await updatePatientById(patientId, formData.value);
+    alert('Patient updated successfully!');
+    router.push({
+      name: 'PatientDetails',
+      params: { id: patientId }
+    });
+  } catch (err) {
+    console.error('Update error:', err);
+    
+    if (err.response?.status === 401) {
+      error.value = 'Your session has expired. Please login again.';
+      localStorage.removeItem('token');
+      setTimeout(() => router.push('/login'), 2000);
+    } else if (err.response?.status === 403) {
+      error.value = 'You do not have permission to update this patient.';
+    } else if (err.response) {
+      error.value = err.response.data.message || err.response.data.error || 'Failed to update patient.';
+    } else if (err.request) {
+      error.value = 'Cannot connect to server. Please check your internet connection.';
+    } else {
+      error.value = `Update failed: ${err.message}`;
+    }
+    
+    alert(error.value);
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const handleCancel = () => {
+  router.push({
+    name: 'PatientDetails',
+    params: { id: patientId }
+  });
+};
 </script>
 
+<!-- Template giữ nguyên như cũ -->
 <template>
-  <div class="dashboard">
-    <!-- Header Section -->
-    <div class="dashboard-header">
-      <div class="header-content">
+  <div class="edit-patient-container">
+    <div class="edit-patient-card">
+      <div class="page-header">
         <div class="breadcrumb">
-          <span class="breadcrumb-item">🏠 Dashboard</span>
+          <router-link to="/patient-list" class="breadcrumb-link">👥 Patients</router-link>
+          <span class="breadcrumb-separator">→</span>
+          <router-link :to="`/patient-details/${patientId}`" class="breadcrumb-link">
+            {{ formData.patient_name || 'Patient' }}
+          </router-link>
+          <span class="breadcrumb-separator">→</span>
+          <span class="breadcrumb-current">Edit</span>
         </div>
-        <h1 class="dashboard-title">
-          Dashboard
-        </h1>
-        <p class="dashboard-subtitle">Welcome back, Dr. {{ doctorName }}</p>
-      </div>
-      
-      <!-- Stats Cards Row -->
-      <div class="stats-row">
-        <div class="stat-card blue">
-          <div class="stat-icon">👥</div>
-          <div class="stat-content">
-            <div class="stat-label">Total Patients</div>
-            <div class="stat-value">{{ stats.totalPatients }}</div>
-          </div>
-        </div>
-        
-        <div class="stat-card green">
-          <div class="stat-icon">📅</div>
-          <div class="stat-content">
-            <div class="stat-label">Today Appointments</div>
-            <div class="stat-value">{{ stats.todayAppointments }}</div>
-          </div>
-        </div>
-        
-        <div class="stat-card orange">
-          <div class="stat-icon">❤️</div>
-          <div class="stat-content">
-            <div class="stat-label">Pending Vitals</div>
-            <div class="stat-value">{{ stats.pendingVitals }}</div>
-          </div>
-        </div>
-        
-        <div class="stat-card red">
-          <div class="stat-icon">📋</div>
-          <div class="stat-content">
-            <div class="stat-label">Medical Records</div>
-            <div class="stat-value">{{ stats.completedRecords }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Content Grid -->
-    <div class="dashboard-grid">
-      <!-- Quick Actions Card -->
-      <div class="card quick-actions">
-        <div class="card-header">
-          <h3>Quick Actions</h3>
-        </div>
-        <div class="card-body">
-          <div class="action-buttons">
-            <router-link to="/patient-list" class="action-btn primary">
-              <div class="btn-icon">👥</div>
-              <div class="btn-text">
-                <span class="btn-title">My Patients</span>
-                <span class="btn-subtitle">View & manage patients</span>
-              </div>
-            </router-link>
-            
-            <router-link to="/create-patient" class="action-btn success">
-              <div class="btn-icon">➕</div>
-              <div class="btn-text">
-                <span class="btn-title">Add Patient</span>
-                <span class="btn-subtitle">Register new patient</span>
-              </div>
-            </router-link>
-            
-            <router-link to="/vitals-list" class="action-btn warning">
-              <div class="btn-icon">❤️</div>
-              <div class="btn-text">
-                <span class="btn-title">Vitals</span>
-                <span class="btn-subtitle">Check vital signs</span>
-              </div>
-            </router-link>
-            
-            <router-link to="/record-list" class="action-btn info">
-              <div class="btn-icon">📄</div>
-              <div class="btn-text">
-                <span class="btn-title">Medical Records</span>
-                <span class="btn-subtitle">View patient records</span>
-              </div>
-            </router-link>
-          </div>
-        </div>
+        <h1 class="page-title">Edit Patient</h1>
       </div>
 
-      <!-- Recent Patients Card -->
-      <div class="card recent-patients">
-        <div class="card-header">
-          <h3>Recent Patients</h3>
-          <router-link to="/patient-list" class="view-all">View All</router-link>
-        </div>
-        <div class="card-body">
-          <div class="patient-list">
-            <div class="patient-item">
-              <div class="patient-avatar">JD</div>
-              <div class="patient-info">
-                <div class="patient-name">John Doe</div>
-                <div class="patient-time">2 hours ago</div>
-              </div>
-              <div class="patient-status pending">Pending</div>
-            </div>
-            
-            <div class="patient-item">
-              <div class="patient-avatar">MS</div>
-              <div class="patient-info">
-                <div class="patient-name">Mary Smith</div>
-                <div class="patient-time">5 hours ago</div>
-              </div>
-              <div class="patient-status completed">Completed</div>
-            </div>
-            
-            <div class="patient-item">
-              <div class="patient-avatar">RJ</div>
-              <div class="patient-info">
-                <div class="patient-name">Robert Johnson</div>
-                <div class="patient-time">1 day ago</div>
-              </div>
-              <div class="patient-status in-progress">In Progress</div>
-            </div>
-          </div>
-        </div>
+      <div v-if="loading" class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Loading patient information...</p>
       </div>
 
-      <!-- Today's Schedule Card -->
-      <div class="card schedule">
-        <div class="card-header">
-          <h3>Today's Schedule</h3>
-        </div>
-        <div class="card-body">
-          <div class="schedule-list">
-            <div class="schedule-item">
-              <div class="schedule-time">09:00 AM</div>
-              <div class="schedule-info">
-                <div class="schedule-title">Patient Consultation</div>
-                <div class="schedule-patient">Alice Cooper</div>
-              </div>
+      <div v-else-if="error" class="error-state">
+        <div class="error-icon">⚠️</div>
+        <p>{{ error }}</p>
+        <button @click="router.push('/patient-list')" class="btn btn-secondary">
+          Back to Patient List
+        </button>
+      </div>
+
+      <div v-else class="form-container">
+        <form @submit.prevent="handleSubmit">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="patient_id">Patient ID</label>
+              <input 
+                type="text" 
+                id="patient_id" 
+                v-model="formData.patient_id" 
+                readonly
+                class="readonly"
+              />
             </div>
-            
-            <div class="schedule-item">
-              <div class="schedule-time">11:30 AM</div>
-              <div class="schedule-info">
-                <div class="schedule-title">Vital Signs Check</div>
-                <div class="schedule-patient">Bob Wilson</div>
-              </div>
+
+            <div class="form-group">
+              <label for="patient_name">Full Name *</label>
+              <input 
+                type="text" 
+                id="patient_name" 
+                v-model="formData.patient_name" 
+                required
+              />
             </div>
-            
-            <div class="schedule-item">
-              <div class="schedule-time">02:00 PM</div>
-              <div class="schedule-info">
-                <div class="schedule-title">Follow-up Appointment</div>
-                <div class="schedule-patient">Carol Davis</div>
-              </div>
+
+            <div class="form-group">
+              <label for="date_of_birth">Date of Birth *</label>
+              <input 
+                type="date" 
+                id="date_of_birth" 
+                v-model="formData.date_of_birth" 
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="gender">Gender *</label>
+              <select id="gender" v-model="formData.gender" required>
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="phone_number">Phone Number</label>
+              <input 
+                type="tel" 
+                id="phone_number" 
+                v-model="formData.phone_number"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input 
+                type="email" 
+                id="email" 
+                v-model="formData.email"
+              />
+            </div>
+
+            <div class="form-group full-width">
+              <label for="address">Address</label>
+              <textarea 
+                id="address" 
+                v-model="formData.address"
+                rows="3"
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="emergency_contact">Emergency Contact</label>
+              <input 
+                type="text" 
+                id="emergency_contact" 
+                v-model="formData.emergency_contact"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="staff_id">Assigned Doctor</label>
+              <select id="staff_id" v-model="formData.staff_id">
+                <option value="">Select Doctor</option>
+                <option v-for="doctor in doctors" :key="doctor.staff_id" :value="doctor.staff_id">
+                  {{ doctor.staff_name }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="medical_history">Medical History</label>
+              <textarea 
+                id="medical_history" 
+                v-model="formData.medical_history"
+                rows="4"
+                placeholder="Enter patient's medical history..."
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="status">Status</label>
+              <select id="status" v-model="formData.status">
+                <option value="Active">Active</option>
+                <option value="Discharged">Discharged</option>
+                <option value="Inactive">Inactive</option>
+              </select>
             </div>
           </div>
-        </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" :disabled="submitting">
+              <span v-if="submitting">Updating...</span>
+              <span v-else">Update Patient</span>
+            </button>
+            <button 
+              type="button" 
+              @click="handleCancel"
+              class="btn btn-secondary"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
 </template>
 
+<!-- Styles đầy đủ -->
 <style scoped>
-.dashboard {
+.edit-patient-container {
   padding: 20px;
-  background-color: #f8f9fa;
-  min-height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.dashboard-header {
-  margin-bottom: 30px;
-}
-
-.header-content {
-  margin-bottom: 20px;
-}
-
-.breadcrumb {
-  color: #6c757d;
-  font-size: 14px;
-  margin-bottom: 10px;
-}
-
-.dashboard-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #343a40;
-  margin: 0 0 5px 0;
-}
-
-.dashboard-subtitle {
-  color: #6c757d;
-  margin: 0;
-}
-
-/* Stats Row */
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
-}
-
-.stat-card {
+.edit-patient-card {
   background: white;
-  border-radius: 8px;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  transition: transform 0.2s;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-}
-
-.stat-card.blue { border-left: 4px solid #007bff; }
-.stat-card.green { border-left: 4px solid #28a745; }
-.stat-card.orange { border-left: 4px solid #fd7e14; }
-.stat-card.red { border-left: 4px solid #dc3545; }
-
-.stat-icon {
-  font-size: 32px;
-  margin-right: 15px;
-}
-
-.stat-content {
-  flex: 1;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: #6c757d;
-  margin-bottom: 5px;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: 600;
-  color: #343a40;
-}
-
-/* Dashboard Grid */
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-.card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
-.card-header {
-  padding: 20px 20px 0 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #e9ecef;
-  padding-bottom: 15px;
+.page-header {
+  padding: 24px 32px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
 }
 
-.card-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #343a40;
-}
-
-.view-all {
-  color: #007bff;
-  text-decoration: none;
+.breadcrumb {
   font-size: 14px;
+  margin-bottom: 12px;
+  opacity: 0.9;
 }
 
-.card-body {
-  padding: 20px;
-}
-
-/* Quick Actions */
-.quick-actions {
-  grid-column: 1 / -1;
-}
-
-.action-buttons {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 15px;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  padding: 15px;
-  border-radius: 6px;
+.breadcrumb-link {
+  color: white;
   text-decoration: none;
-  transition: all 0.2s;
-  border: 2px solid transparent;
+  transition: opacity 0.2s;
 }
 
-.action-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-}
-
-.action-btn.primary {
-  background: linear-gradient(135deg, #007bff, #0056b3);
-  color: white;
-}
-
-.action-btn.success {
-  background: linear-gradient(135deg, #28a745, #1e7e34);
-  color: white;
-}
-
-.action-btn.warning {
-  background: linear-gradient(135deg, #fd7e14, #e55a00);
-  color: white;
-}
-
-.action-btn.info {
-  background: linear-gradient(135deg, #17a2b8, #117a8b);
-  color: white;
-}
-
-.btn-icon {
-  font-size: 24px;
-  margin-right: 15px;
-}
-
-.btn-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.btn-title {
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.btn-subtitle {
-  font-size: 12px;
+.breadcrumb-link:hover {
   opacity: 0.8;
 }
 
-/* Recent Patients */
-.patient-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+.breadcrumb-separator {
+  margin: 0 8px;
+  opacity: 0.7;
 }
 
-.patient-item {
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  border-radius: 6px;
-  background: #f8f9fa;
+.breadcrumb-current {
+  opacity: 0.8;
 }
 
-.patient-avatar {
+.page-title {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.loading-state, .error-state {
+  text-align: center;
+  padding: 60px 32px;
+}
+
+.loading-spinner {
   width: 40px;
   height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
   border-radius: 50%;
-  background: #007bff;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  margin-right: 15px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
 }
 
-.patient-info {
-  flex: 1;
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-.patient-name {
-  font-weight: 600;
-  color: #343a40;
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
 }
 
-.patient-time {
-  font-size: 12px;
-  color: #6c757d;
+.form-container {
+  padding: 32px;
 }
 
-.patient-status {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
 }
 
-.patient-status.pending {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.patient-status.completed {
-  background: #d4edda;
-  color: #155724;
-}
-
-.patient-status.in-progress {
-  background: #cce7ff;
-  color: #004085;
-}
-
-/* Schedule */
-.schedule-list {
+.form-group {
   display: flex;
   flex-direction: column;
-  gap: 15px;
 }
 
-.schedule-item {
-  display: flex;
-  align-items: center;
-  padding: 15px;
-  border-left: 4px solid #007bff;
-  background: #f8f9fa;
-  border-radius: 0 6px 6px 0;
+.form-group.full-width {
+  grid-column: 1 / -1;
 }
 
-.schedule-time {
+.form-group label {
   font-weight: 600;
-  color: #007bff;
-  min-width: 80px;
-  margin-right: 15px;
-}
-
-.schedule-title {
-  font-weight: 600;
-  color: #343a40;
-}
-
-.schedule-patient {
+  margin-bottom: 8px;
+  color: #374151;
   font-size: 14px;
-  color: #6c757d;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background-color: white;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group input.readonly {
+  background-color: #f9fafb;
+  cursor: not-allowed;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: flex-end;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  background: #f8fafc;
+  color: #475569;
+  border: 2px solid #e2e8f0;
+}
+
+.btn-secondary:hover {
+  background: #e2e8f0;
+  transform: translateY(-1px);
 }
 
 @media (max-width: 768px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
+  .edit-patient-container {
+    padding: 12px;
   }
   
-  .stats-row {
-    grid-template-columns: 1fr;
+  .form-container {
+    padding: 20px;
   }
   
-  .action-buttons {
+  .form-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .btn {
+    width: 100%;
   }
 }
 </style>
