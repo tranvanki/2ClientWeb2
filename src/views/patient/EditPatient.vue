@@ -18,12 +18,7 @@ const patientId = props.id || route.params.id;
 const formData = ref({
   patient_id: '',
   patient_name: '',
-  date_of_birth: '',
-  gender: '',
   phone_number: '',
-  email: '',
-  address: '',
-  emergency_contact: '',
   staff_id: '',
   medical_history: '',
   status: 'Active'
@@ -148,7 +143,6 @@ const handleCancel = () => {
 };
 </script>
 
-<!-- Template giữ nguyên như cũ -->
 <template>
   <div class="edit-patient-container">
     <div class="edit-patient-card">
@@ -203,26 +197,6 @@ const handleCancel = () => {
             </div>
 
             <div class="form-group">
-              <label for="date_of_birth">Date of Birth *</label>
-              <input 
-                type="date" 
-                id="date_of_birth" 
-                v-model="formData.date_of_birth" 
-                required
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="gender">Gender *</label>
-              <select id="gender" v-model="formData.gender" required>
-                <option value="">Select Gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div class="form-group">
               <label for="phone_number">Phone Number</label>
               <input 
                 type="tel" 
@@ -231,32 +205,6 @@ const handleCancel = () => {
               />
             </div>
 
-            <div class="form-group">
-              <label for="email">Email</label>
-              <input 
-                type="email" 
-                id="email" 
-                v-model="formData.email"
-              />
-            </div>
-
-            <div class="form-group full-width">
-              <label for="address">Address</label>
-              <textarea 
-                id="address" 
-                v-model="formData.address"
-                rows="3"
-              ></textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="emergency_contact">Emergency Contact</label>
-              <input 
-                type="text" 
-                id="emergency_contact" 
-                v-model="formData.emergency_contact"
-              />
-            </div>
 
             <div class="form-group">
               <label for="staff_id">Assigned Doctor</label>
