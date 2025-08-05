@@ -18,13 +18,9 @@ const patientId = props.id || route.params.id;
 const formData = ref({
   patient_id: '',
   patient_name: '',
-  date_of_birth: '',
-  gender: '',
+ 
   phone_number: '',
-  email: '',
-  address: '',
-  emergency_contact: '',
-  staff_id: '',
+  sta
   medical_history: '',
   status: 'Active'
 });
